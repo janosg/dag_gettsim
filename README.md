@@ -13,6 +13,7 @@ This is based on ideas by [Tobias Raabe](https://github.com/tobiasraabe), [Hans-
 Currently only local installation is possible. Open a terminal in the root folder and type:
 
 `conda env create -f environment.yml`
+`conda activate dag_gettsim`
 `pip install -e .`
 
 ## Some Design Choices
