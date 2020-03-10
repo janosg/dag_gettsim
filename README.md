@@ -8,8 +8,14 @@ There is an accompanying [tutorial](https://github.com/janosg/dag_gettsim_tutori
 
 This is based on ideas by [Tobias Raabe](https://github.com/tobiasraabe), [Hans-Martin von Gaudecker](https://github.com/hmgaudecker) and [Janoś Gabler](https://github.com/janosg).
 
-## Some Design Choices
+## Installation
 
+Currently only local installation is possible. Open a terminal in the root folder and type:
+
+`conda env create -f environment.yml`
+`pip install -e .`
+
+## Some Design Choices
 
 ### Data Arguments / Data Storage
 
