@@ -10,7 +10,7 @@ dependencies:
   - pandas=0.25
   - numpy=1.16
   - scipy=1.2
-  - jupyter
+  - jupyterlab
   - seaborn
   - pip=19.3.1
   - pdbpp

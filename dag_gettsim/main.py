@@ -8,7 +8,9 @@ import pandas as pd
 from dag_gettsim import aggregation, benefits, taxes
 
 
-def tax_transfer(baseline_date, data, functions=None, params=None, targets="all"):
+def tax_transfer(
+    baseline_date, data, functions=None, params=None, targets="all", return_dag=False
+):
     """Simulate a tax and tranfers system specified in model_spec.
 
     Args:
@@ -37,7 +39,13 @@ def tax_transfer(baseline_date, data, functions=None, params=None, targets="all"
     params = get_params(baseline_date, user_params)
     func_dict = create_function_dict(user_functions=user_functions, params=params)
     dag = create_dag(func_dict)
+    if targets != "all":
+        dag = prune_dag(dag, targets)
     results = execute_dag(func_dict, dag, data, targets)
+
+    if return_dag:
+        results = (results, dag)
+
     return results
 
 
@@ -110,6 +118,36 @@ def create_dag(func_dict):
     return nx.DiGraph(dag_dict).reverse()
 
 
+def prune_dag(dag, targets):
+    """Prune the dag.
+
+    Args:
+        dag (nx.DiGraph): The unpruned DAG.
+        targets (list): Variables of interest.
+
+    Returns:
+        dag (nx.DiGraph): Pruned DAG.
+
+    """
+    # Go through the DAG from the targets to the bottom and collect all visited nodes.
+    visited_nodes = set(targets)
+    visited_nodes_changed = True
+    while visited_nodes_changed:
+        n_visited_nodes = len(visited_nodes)
+        for node in visited_nodes:
+            visited_nodes = visited_nodes.union(nx.ancestors(dag, node))
+
+        visited_nodes_changed = n_visited_nodes != len(visited_nodes)
+
+    # Redundant nodes are nodes not visited going from the targets through the graph.
+    all_nodes = set(dag.nodes)
+    redundant_nodes = all_nodes - visited_nodes
+
+    dag.remove_nodes_from(redundant_nodes)
+
+    return dag
+
+
 def execute_dag(func_dict, dag, data, targets):
     """Naive serial scheduler for our tasks.
 
@@ -130,6 +168,8 @@ def execute_dag(func_dict, dag, data, targets):
         dict: Dictionary of pd.Series with the results.
 
     """
+    # Needed for garbage collection.
+    visited_nodes = set()
     results = data.copy()
     for task in nx.topological_sort(dag):
         if task not in results:
@@ -139,10 +179,38 @@ def execute_dag(func_dict, dag, data, targets):
             else:
                 raise KeyError(f"Missing variable or function: {task}")
 
-    if targets != "all":
-        results = _dict_subset(results, targets)
+            visited_nodes.add(task)
+
+            if targets != "all":
+                results = garbage_collection(results, task, visited_nodes, dag)
+
     return results
 
 
 def _dict_subset(dictionary, keys):
     return {k: dictionary[k] for k in keys}
+
+
+def garbage_collection(results, task, visited_nodes, dag):
+    """Remove data which is no longer necessary.
+
+    If all descendants of a node have been evaluated, the information in the node
+    becomes redundant and can be removed to save memory.
+
+    Args:
+        results (dict)
+        task (str)
+        visited_nodes (set)
+        dag (nx.DiGraph)
+
+    Returns:
+        results (dict)
+
+    """
+    ancestors_of_task = nx.ancestors(dag, task)
+
+    for node in ancestors_of_task:
+        if all(descendant in visited_nodes for descendant in nx.descendants(dag, node)):
+            del results[node]
+
+    return results
