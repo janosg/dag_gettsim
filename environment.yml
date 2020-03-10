@@ -1,0 +1,21 @@
+name: dag_gettsim
+
+channels:
+  - defaults
+  - conda-forge
+
+dependencies:
+
+  - python=3.7
+  - pandas=0.25
+  - numpy=1.16
+  - scipy=1.2
+  - jupyter
+  - seaborn
+  - pip=19.3.1
+  - pdbpp
+  - networkx
+  - pip:
+    - isort
+    - black
+
