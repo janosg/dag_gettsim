@@ -182,7 +182,7 @@ def execute_dag(func_dict, dag, data, targets):
             visited_nodes.add(task)
 
             if targets != "all":
-                results = garbage_collection(results, task, visited_nodes, dag)
+                results = collect_garbage(results, task, visited_nodes, targets, dag)
 
     return results
 
@@ -191,7 +191,7 @@ def _dict_subset(dictionary, keys):
     return {k: dictionary[k] for k in keys}
 
 
-def garbage_collection(results, task, visited_nodes, dag):
+def collect_garbage(results, task, visited_nodes, targets, dag):
     """Remove data which is no longer necessary.
 
     If all descendants of a node have been evaluated, the information in the node
@@ -210,7 +210,11 @@ def garbage_collection(results, task, visited_nodes, dag):
     ancestors_of_task = nx.ancestors(dag, task)
 
     for node in ancestors_of_task:
-        if all(descendant in visited_nodes for descendant in nx.descendants(dag, node)):
+        is_obsolete = all(
+            descendant in visited_nodes for descendant in nx.descendants(dag, node)
+        )
+
+        if is_obsolete and task not in targets:
             del results[node]
 
     return results
