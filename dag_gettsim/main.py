@@ -8,6 +8,32 @@ import pandas as pd
 from dag_gettsim import aggregation, benefits, taxes
 
 
+def taxes_and_transfers_system_from_scratch(input_columns, functions, params):
+    """Setup a taxes and transfers system starting from scratch.
+
+    Args:
+        input_columns (list-like): Columns that will be present in data
+        functions (dict): Functions that will be called. The keys are the columns that will be generated.
+        params (nested dict): Parameters of the functions, usually as stated in the law.
+
+    Returns:
+
+        required_input_columns (list-like): The input columns that are actually required to run stuff.
+        dag (networkx dag): The DAG-representation of the taxes and transfers system.
+
+    """
+
+    return namedTuple(required_input_columns, dag)
+
+
+def taxes_and_transfers_system_as_deviation_from_date(baseline_date, functions, params):
+    """Setup a taxes and transfers system as a deviation from a system in place at a baseline date.
+
+    """
+
+    return namedTuple(required_input_columns, dag)
+
+
 def tax_transfer(
     baseline_date, data, functions=None, params=None, targets="all", return_dag=False
 ):
@@ -170,17 +196,14 @@ def execute_dag(func_dict, dag, data, targets):
     """
     # Needed for garbage collection.
     visited_nodes = set()
-    results = data.copy()
-    for task in nx.topological_sort(dag):
-        if task not in results:
-            if task in func_dict:
-                kwargs = _dict_subset(results, dag.predecessors(task))
-                results[task] = func_dict[task](**kwargs)
-            else:
-                raise KeyError(f"Missing variable or function: {task}")
-
-            visited_nodes.add(task)
-
+    results = {}
+    for node in nx.topological_sort(dag):
+        visited_nodes.add(node)
+        if node in func_dict:
+            # `results + data` is for Janos to sort out because he did not like
+            # weak subsets
+            kwargs = _dict_subset(results + data, dag.predecessors(task))
+            results[node] = func_dict[node](**kwargs)
             if targets != "all":
                 results = collect_garbage(results, task, visited_nodes, targets, dag)
 
